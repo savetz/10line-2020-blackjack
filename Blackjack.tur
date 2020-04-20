@@ -1,0 +1,139 @@
+REM BLACKJACK - KEVIN SAVETZ - JAN 2-3 2020
+
+DIM CARDT$(15),CARDM$(15),CARDS$(15),CARDD$(15),CARDE$(15),SUIT$(4),N$(13),U(52),D(14),NUMCARDS(1),SUM(1),V$(13),I$(1),ACES(1)
+
+GR.0
+POKE 82,0
+
+CARDT$="\11\12\12\12\12\12\05\1E\1E\1E\1E\1E\1E\1E\1D"
+CARDM$="\7C     \7C\1E\1E\1E\1E\1E\1E\1E\1D"
+
+'CARDT$: card top
+'CARDM$: card middle
+'CARDS$: card middle with suit
+'CARDD$: card middle with number in upper left
+'CARDE$: card middle with number in lower right
+'Card bottom and card back are drawn in the GOSUB area without strings to save space here
+
+'U: Temp. storage whether a card has been placed in the deck
+'D: Deck of randomized cards
+'NUMCARDS: Number of Cards held by player/dealer
+'SUM: SUm of player and dealer cards
+'I$: storage for INKEY$ keyboard input
+'ACES: Number of ACes held by player/dealer that may be counted at the other value (1/11)
+
+N$="A23456789TJQK":'one-character card names.
+V$="\01\02\03\04\05\06\07\08\09\0A\0A\0A\0A":'values of cards A-K
+
+SUIT$="\00\10\60\7B":'heart club diamond spade
+
+'SHUFFLE
+FOR X=0 TO 14:'Fill slots. Only slotting 15 cards is faster than 52.
+	N=0
+	WHILE N=0:'while we haven't found a card for this slot
+		Y=RAND(52):'which card might go in this slot?
+		IF (U(Y)=0):'if we haven't slotted this card yet
+			D(X)=Y:'slot now contains this card
+			U(Y)=1:'mark card as used in a slot
+			N=1:'move on to next card
+		ENDIF
+	WEND
+NEXT X
+
+'Deal cards
+FOR HAND=0 TO 1
+	FOR P=0 TO 1
+		OB=HAND AND P:'if second card going to dealer, show card back (OBscure it)
+		GOSUB 50
+	NEXT P
+NEXT HAND
+
+'Ask Hit or Stand
+WHILE I$<>"S" AND SUM(0)<22
+	I$=""
+	?"\1D\C8it/\D3tand?";
+	WHILE I$<>"S" AND I$<>"H"
+		I$=INKEY$
+	WEND
+
+	?"\9C":'erase old Hit/Stand query
+
+	IF(I$="H")
+		P=0:'the player is getting cards
+		GOSUB 50
+	ENDIF
+WEND
+
+'After player has played, while player holds an ace, and if 11 is better for the
+'score than 1, add 10 to the SUm total.
+WHILE ACES(0) AND SUM(0)+10<22
+	ACES(0)=ACES(0)-1
+	SUM(0)=SUM(0)+10
+WEND
+
+P=1:'Now dealer's turn
+GOSUB 50:'reveal SEcret OBscubed card
+
+IF ((SUM(0)=21 AND NUMCARDS(0)=2)=0):'Skip next part if player got blackjack
+	WHILE (SUM(0)<22 AND SUM(1)<17):'if player hasn't busted and dealer's hand <=16
+		PAUSE 60
+		GOSUB 50
+
+		'If >21 but dealer holds an ACe, change value of that ace from 11 to 1
+		WHILE SUM(1)>21 AND ACES(1)
+			ACES(1)=ACES(1)-1
+			SUM(1)=SUM(1)-10
+		WEND		
+	WEND
+ENDIF
+
+'Display totals and winner
+POS.0,22
+?"You: ";SUM(0);"\7F\7FDealer: ";SUM(1)
+
+'reusing CARDT$ for the summary text
+CARDT$="Push"
+IF SUM(0)<22
+	IF SUM(1)>21 OR SUM(1)<SUM(0)
+		CARDT$="You win!"
+	ENDIF
+	IF SUM(1)<22 AND SUM(1)>SUM(0)
+		CARDT$="Dealer wins"
+	ENDIF
+ELSE
+	CARDT$="Busted"
+ENDIF
+?CARDT$;
+
+WHILE INKEY$="":WEND
+RUN
+
+50 
+	CARDS$=CARDM$:CARDD$=CARDM$:CARDE$=CARDM$
+	POS. NUMCARDS(P)*2+P*20,2+NUMCARDS(P)*2
+	IF (P=1 AND SE):'reveal the SEcret card
+		X=SE-1
+		SE=0
+	ELSE
+		X=D(Z):'otherwise, next card in the deck
+		Z=Z+1:'set pointer to next card
+	ENDIF
+	N=X MOD 13+1:M=X DIV 13+1
+
+	?CARDT$;:'card top
+	IF (OB=0):'if not OBscuring card...
+		CARDS$(4,4)=SUIT$(M,M):'put suit on card middle
+		CARDD$(2,2)=N$(N,N):'put number on upper-right
+		CARDE$(6,6)=N$(N,N):'and lower-left
+		?CARDD$;CARDM$;CARDM$;CARDS$;CARDM$;CARDM$;CARDE$;
+		SUM(P)=SUM(P)+ASC(V$(N,N)):'add to player's SUm total IF card face is shown
+		SUM(P)=SUM(P)+(10*P*(N=1)):'When dealer draws an ace, count it as 11
+		NUMCARDS(P)=NUMCARDS(P)+1:'increment Number of Cards held by player
+		ACES(P)=ACES(P)+(N=1):'numbr of ACes held by that player
+	ELSE:'OBscuring card
+		FOR X=1 TO 7:?"\7C.....\7C\1E\1E\1E\1E\1E\1E\1E\1D";:NEXT X:'back of card pattern
+		SE=N:'save SEcret card
+		OB=0:'don't OBscure next card
+	ENDIF
+	?"\1A\12\12\12\12\12\03":'card bottom
+RETURN
