@@ -1,8 +1,8 @@
 # 10line-blackjack
 Blackjack game in Turbo BASIC XL for Atari 8-bit. Entry for 2020 10-line BASIC contest
 
-![screenshot 1](blackjack1.png)
 ![screenshot 2](blackjack2.png)
+![screenshot 1](blackjack1.png)
 
 Hot on the heels of the poker game, I wrote a blackjack game for the 10-line BASIC contest. It is also in TurboBASIC XL on the Atari 8-bit, and also in ten 120-character lines. I borrowed the card shuffling code from the poker game, but otherwise it’s all new code.
 
